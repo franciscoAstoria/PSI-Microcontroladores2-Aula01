@@ -2,6 +2,17 @@
 
 Atividade prática inicial da aula 1 da disciplina Microcontroladores 2 (PSI).
 
+## Descrição
+
+O firmware em `src/main.c` roda baremetal (sem threads) na placa FRDM-KL25Z com Zephyr e controla dois LEDs (`led0` e `led1`) via GPIO, alternando seus estados em intervalos fixos usando `k_msleep`. Cada troca de estado é registrada via `printk` com o timestamp (`k_uptime_get()`) e o período configurado daquele LED. Existem dois modos de piscar, selecionados em `main()`:
+
+- `blink_led_demo()`: `led0` pisca a cada 500 ms e `led1` a cada 1000 ms.
+- `blink_led_desafio()`: `led0` pisca a cada 350 ms e `led1` a cada 1000 ms.
+
+O script `calcular_jitter.py` lê o log serial (`demo_log.txt`/`desafio_log.txt`), extrai os timestamps de cada LED e calcula o jitter (diferença entre o instante medido e o instante nominal esperado, dado o período e o offset inicial). Ele imprime o número de amostras e o jitter máximo de cada LED, além de gerar um gráfico (`.png`) de jitter em função do tempo para os dois LEDs. Para testá-lo, rodar no terminal: 'python calcular_jitter.py aaa_log.txt'
+
+- OBS.: para gerar os arquivos de log, eu rodei o seguinte comando (Linux): 'pyserial-miniterm /dev/ttyACM0 115200 | tee aaa_log.txt
+
 Registre sua evolução utilizando os checklists abaixo por meio de commits com mensagens descritivas:
 
 ### Setup (individual)
