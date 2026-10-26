@@ -3,52 +3,81 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 
-#define SLEEP_TIME_MS 500
+#define SLEEP_TIME_LED0 1000
+#define SLEEP_TIME_LED1 500
+#define BLINK_DURATION 200
+
 #define STACK_SIZE 512
 #define THREAD_PRIORITY 7
 
-// Define o LED usando Device Tree
+// Define os LEDs usando Device Tree
 #define LED0_NODE DT_ALIAS(led0)
+#define LED1_NODE DT_ALIAS(led1)
 
-// Verifica se o LED está definido no Device Tree
-#if DT_NODE_HAS_STATUS(LED0_NODE, okay)
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+// Verifica se os LEDs estão definidos no Device Tree
+#if DT_NODE_HAS_STATUS(LED0_NODE, okay) && DT_NODE_HAS_STATUS(LED1_NODE, okay)
+static const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(LED1_NODE, gpios);
 #else
-#error "Unsupported board: led0 devicetree alias is not defined"
+#error "Unsupported board: LED aliases not defined"
 #endif
 
-// Thread responsável por piscar o LED
-void led_thread(void)
+// Thread responsável pelo LED0 (1000 ms)
+void led0_thread(void)
 {
+    gpio_pin_set_dt(&led0, 0);
     while (1) {
-        gpio_pin_toggle_dt(&led);
-        k_msleep(SLEEP_TIME_MS);
+        gpio_pin_toggle_dt(&led0);
+        k_msleep(BLINK_DURATION);
+
+        gpio_pin_toggle_dt(&led0);
+        k_msleep(SLEEP_TIME_LED0 - BLINK_DURATION);
     }
 }
 
-// Cria a thread, inicialmente com início adiado
-K_THREAD_DEFINE(led_thread_id, 512, led_thread,
-                NULL, NULL, NULL, 7, 0, 0);
+// Thread responsável pelo LED1 (500 ms)
+void led1_thread(void)
+{   
+    gpio_pin_set_dt(&led1, 0);
+    while (1) {
+        gpio_pin_toggle_dt(&led1);
+        k_msleep(BLINK_DURATION);
+
+        gpio_pin_toggle_dt(&led1);
+        k_msleep(SLEEP_TIME_LED1 - BLINK_DURATION);
+    }
+}
+
+// Criação das duas threads
+K_THREAD_DEFINE(led0_thread_id, STACK_SIZE, led0_thread,
+                NULL, NULL, NULL, THREAD_PRIORITY, 0, 0);
+
+K_THREAD_DEFINE(led1_thread_id, STACK_SIZE, led1_thread,
+                NULL, NULL, NULL, THREAD_PRIORITY, 0, 0);
 
 int main(void)
 {
     int ret;
 
-    // Verifica se o device está pronto
-    if (!gpio_is_ready_dt(&led)) {
-        printk("Error: LED device %s is not ready\n", led.port->name);
-        return 0;
+    // Verifica se os dispositivos estão prontos
+    if (!gpio_is_ready_dt(&led0) || !gpio_is_ready_dt(&led1)) {
+        printk("Error: LED device not ready\n");
+        return;
     }
 
-    // Configura o pino como saída
-    ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+    // Configura LED0 como saída
+    ret = gpio_pin_configure_dt(&led0, GPIO_OUTPUT_ACTIVE);
     if (ret < 0) {
-        printk("Error %d: failed to configure LED pin\n", ret);
-        return 0;
+        printk("Error configuring LED0\n");
+        return;
     }
 
-    // Libera a thread para começar a execução
-    k_thread_start(led_thread_id);
+    // Configura LED1 como saída
+    ret = gpio_pin_configure_dt(&led1, GPIO_OUTPUT_ACTIVE);
+    if (ret < 0) {
+        printk("Error configuring LED1\n");
+        return;
+    }
 
-    return 0;
+    printk("LED0: 1000 ms | LED1: 500 ms\n");
 }
