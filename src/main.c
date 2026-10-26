@@ -4,8 +4,8 @@
 #include <zephyr/drivers/gpio.h>
 
 #define SLEEP_TIME_LED0 1000
-#define SLEEP_TIME_LED1 500
-#define BLINK_DURATION 200
+#define SLEEP_TIME_LED1 350
+#define BLINK_DURATION 150
 
 #define STACK_SIZE 512
 #define THREAD_PRIORITY 7
